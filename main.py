@@ -18,7 +18,13 @@ from response_engine import (
 )
 
 app = FastAPI()
-
+app = FastAPI(
+    title="CodeTrace",
+    description="Error Intelligence API — turn raw stack traces into structured debugging intelligence.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url=None
+)
 
 # -------------------
 # Schemas
@@ -203,5 +209,9 @@ def submit_feedback(
     }
 
 @app.get("/")
+def landing():
+    return FileResponse("/app/index.html")
+
+@app.get("/", include_in_schema=False)
 def landing():
     return FileResponse("/app/index.html")
