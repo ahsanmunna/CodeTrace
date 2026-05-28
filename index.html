@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeTrace — Error Intelligence API</title>
+<style>
+  :root { --font-override: 'Courier New', monospace; }
+</style>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface2: #1a1a1e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8e8e8;
+    --muted: #888;
+    --accent: #7c6dfa;
+    --accent2: #4ade80;
+    --accent3: #f59e0b;
+    --danger: #ef4444;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,109,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,109,250,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,11,0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid rgba(124,109,250,0.4);
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .nav-cta:hover {
+    background: rgba(124,109,250,0.1);
+    border-color: var(--accent);
+  }
+
+  main { position: relative; z-index: 1; }
+
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8rem 2rem 4rem;
+  }
+
+  .hero-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    border: 1px solid rgba(74,222,128,0.25);
+    background: rgba(74,222,128,0.06);
+    padding: 0.3rem 0.9rem;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    display: inline-block;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .hero-sub {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 540px;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+  .btn-ghost {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    padding: 0.75rem 1.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+  .terminal-wrap {
+    width: 100%;
+    max-width: 760px;
+    margin: 4rem auto 0;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .terminal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .terminal-bar {
+    background: var(--surface2);
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ef4444; }
+  .dot-y { background: #f59e0b; }
+  .dot-g { background: #22c55e; }
+
+  .terminal-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .terminal-body {
+    padding: 1.5rem;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+  }
+
+  .t-dim { color: #555; }
+  .t-cmd { color: var(--muted); }
+  .t-key { color: #7dd3fc; }
+  .t-str { color: #86efac; }
+  .t-num { color: var(--accent3); }
+  .t-label { color: var(--accent); }
+  .t-ok { color: var(--accent2); }
+  .t-err { color: var(--danger); }
+
+  .section {
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+  }
+
+  .section-sub {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 500px;
+    line-height: 1.8;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 3rem;
+  }
+
+  .how-step {
+    background: var(--surface);
+    padding: 2rem 1.5rem;
+    position: relative;
+  }
+
+  .how-step:hover { background: var(--surface2); }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-desc {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .endpoints-section {
+    padding: 6rem 2rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .endpoints-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .endpoint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+
+  .endpoint-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    transition: border-color 0.2s;
+  }
+
+  .endpoint-card:hover { border-color: var(--border2); }
+
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(124,109,250,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(124,109,250,0.3);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .endpoint-path {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+
+  .endpoint-desc {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .stack-section {
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 3rem;
+  }
+
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+
+  .stack-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .stack-name {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+
+  .stack-role {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .json-demo {
+    padding: 6rem 2rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .json-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  @media (max-width: 700px) {
+    .json-inner { grid-template-columns: 1fr; }
+    nav { padding: 1rem 1.25rem; }
+    .nav-links { display: none; }
+  }
+
+  .json-text h2 { margin-bottom: 1rem; }
+
+  .json-block {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 1.5rem;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  footer {
+    padding: 2.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<nav>
+  <a href="#" class="logo">
+    <span class="logo-dot"></span>
+    codetrace
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">how it works</a></li>
+    <li><a href="#endpoints">endpoints</a></li>
+    <li><a href="#stack">stack</a></li>
+  </ul>
+  <a href="https://codetrace-production-6a5d.up.railway.app/docs" target="_blank" class="nav-cta">api docs →</a>
+</nav>
+
+<main>
+  <section class="hero">
+    <span class="hero-badge">▸ live on railway — api v1</span>
+    <h1>Turn error logs into<br><span>structured intelligence</span></h1>
+    <p class="hero-sub">
+      send a raw stack trace. get back severity scores,<br>
+      root cause analysis, fix suggestions, and debug time estimates.<br>
+      machine-readable json. every time.
+    </p>
+    <div class="hero-actions">
+      <a href="https://codetrace-production-6a5d.up.railway.app/docs" target="_blank" class="btn-primary">try the api</a>
+      <a href="https://github.com/ahsanmunna/CodeTrace" target="_blank" class="btn-ghost">view source</a>
+    </div>
+
+    <div class="terminal-wrap">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <span class="terminal-label">POST /analyze</span>
+        </div>
+        <div class="terminal-body">
+          <span class="t-dim">$ </span><span class="t-cmd">curl -X POST https://codetrace-production-6a5d.up.railway.app/analyze \</span><br>
+          <span class="t-cmd">&nbsp;&nbsp;-H "Content-Type: application/json" \</span><br>
+          <span class="t-cmd">&nbsp;&nbsp;-d '{</span><br>
+          <span class="t-cmd">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="t-key">"api_key"</span><span class="t-cmd">: </span><span class="t-str">"your_key"</span><span class="t-cmd">,</span><br>
+          <span class="t-cmd">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="t-key">"log"</span><span class="t-cmd">: </span><span class="t-str">"ZeroDivisionError: division by zero"</span><br>
+          <span class="t-cmd">&nbsp;&nbsp;}'</span><br><br>
+          <span class="t-ok">✓</span> <span class="t-dim">200 OK — 43ms</span><br><br>
+          <span class="t-dim">{</span><br>
+          &nbsp;&nbsp;<span class="t-key">"status"</span><span class="t-dim">:</span> <span class="t-str">"success"</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;<span class="t-key">"data"</span><span class="t-dim">: {</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"error_type"</span><span class="t-dim">:</span> <span class="t-str">"ZeroDivisionError"</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"classification"</span><span class="t-dim">:</span> <span class="t-str">"runtime_error"</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"severity"</span><span class="t-dim">:</span> <span class="t-num">6</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"confidence"</span><span class="t-dim">:</span> <span class="t-num">0.87</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"estimated_fix_time_minutes"</span><span class="t-dim">:</span> <span class="t-num">35</span><span class="t-dim">,</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"fix_suggestion"</span><span class="t-dim">:</span> <span class="t-str">"add zero-check before dividing"</span><br>
+          &nbsp;&nbsp;<span class="t-dim">}</span><br>
+          <span class="t-dim">}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="section-tag">// how it works</div>
+    <h2>Four steps.<br>One clean JSON response.</h2>
+    <p class="section-sub">no chatbot. no prose. just structured data your pipeline can act on automatically.</p>
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="step-num">01 —</span>
+        <div class="step-title">ingest</div>
+        <div class="step-desc">send raw log text via POST. python tracebacks, java exceptions, node.js crashes — all accepted.</div>
+      </div>
+      <div class="how-step">
+        <span class="step-num">02 —</span>
+        <div class="step-title">parse</div>
+        <div class="step-desc">multi-language parser extracts file name, line number, error type, and message from messy text.</div>
+      </div>
+      <div class="how-step">
+        <span class="step-num">03 —</span>
+        <div class="step-title">classify</div>
+        <div class="step-desc">scikit-learn classifier categorizes the error and returns a confidence score via predict_proba().</div>
+      </div>
+      <div class="how-step">
+        <span class="step-num">04 —</span>
+        <div class="step-title">respond</div>
+        <div class="step-desc">response engine scores severity, estimates debug time, and returns fix suggestions as structured json.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="endpoints-section" id="endpoints">
+    <div class="endpoints-inner">
+      <div class="section-tag">// endpoints</div>
+      <h2>Three endpoints.<br>That's all you need.</h2>
+      <p class="section-sub">api key authentication on every request. rate limited to 10 req/min on free tier.</p>
+      <div class="endpoint-list">
+        <div class="endpoint-card">
+          <span class="method">POST</span>
+          <div>
+            <div class="endpoint-path">/register</div>
+            <div class="endpoint-desc">create an account and receive your api key. send email, get key back instantly.</div>
+          </div>
+        </div>
+        <div class="endpoint-card">
+          <span class="method">POST</span>
+          <div>
+            <div class="endpoint-path">/analyze</div>
+            <div class="endpoint-desc">core endpoint. send your raw error log, receive full structured diagnostic json.</div>
+          </div>
+        </div>
+        <div class="endpoint-card">
+          <span class="method">POST</span>
+          <div>
+            <div class="endpoint-path">/feedback</div>
+            <div class="endpoint-desc">flag wrong classifications. feeds the retraining pipeline. the model gets smarter with usage.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="json-demo">
+    <div class="json-inner">
+      <div class="json-text">
+        <div class="section-tag">// response format</div>
+        <h2>Not prose.<br>Structured data.</h2>
+        <p class="section-sub">every field is machine-readable. pipe it to jira, slack, pagerduty, or your own dashboard without parsing natural language.</p>
+      </div>
+      <div class="json-block">
+        <span class="t-dim">{</span><br>
+        &nbsp;&nbsp;<span class="t-key">"status"</span><span class="t-dim">:</span> <span class="t-str">"success"</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;<span class="t-key">"data"</span><span class="t-dim">: {</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"parsed_log"</span><span class="t-dim">: {</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"error_type"</span><span class="t-dim">:</span> <span class="t-str">"NullPointerException"</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"file"</span><span class="t-dim">:</span> <span class="t-str">"Main.java"</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"line"</span><span class="t-dim">:</span> <span class="t-num">84</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">},</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"classification"</span><span class="t-dim">: {</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"category"</span><span class="t-dim">:</span> <span class="t-str">"runtime_error"</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"confidence"</span><span class="t-dim">:</span> <span class="t-num">0.91</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-dim">},</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"severity"</span><span class="t-dim">:</span> <span class="t-num">6</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"estimated_fix_time_minutes"</span><span class="t-dim">:</span> <span class="t-num">35</span><span class="t-dim">,</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">"fix_suggestion"</span><span class="t-dim">:</span> <span class="t-str">"add null check before calling .getName()"</span><br>
+        &nbsp;&nbsp;<span class="t-dim">},</span><br>
+        &nbsp;&nbsp;<span class="t-key">"request_id"</span><span class="t-dim">:</span> <span class="t-num">42</span><br>
+        <span class="t-dim">}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="stack-section" id="stack">
+    <div class="section-tag">// built with</div>
+    <h2>Real stack.<br>No shortcuts.</h2>
+    <p class="section-sub">every component chosen for a reason. not boilerplate.</p>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="stack-name">FastAPI</div>
+        <div class="stack-role">api framework</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">PostgreSQL</div>
+        <div class="stack-role">primary database</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">Redis</div>
+        <div class="stack-role">rate limiting</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">scikit-learn</div>
+        <div class="stack-role">ml classifier</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">Docker</div>
+        <div class="stack-role">containerization</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">Railway</div>
+        <div class="stack-role">deployment</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">SQLAlchemy</div>
+        <div class="stack-role">orm</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-name">Pydantic</div>
+        <div class="stack-role">data validation</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-left">codetrace — error intelligence api — v1.0</div>
+  <ul class="footer-links">
+    <li><a href="https://codetrace-production-6a5d.up.railway.app/docs" target="_blank">api docs</a></li>
+    <li><a href="https://github.com/ahsanmunna/CodeTrace" target="_blank">github</a></li>
+  </ul>
+</footer>
+
+</body>
+</html>
