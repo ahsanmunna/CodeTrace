@@ -5,6 +5,7 @@ import secrets
 import json
 
 from fastapi.responses import FileResponse
+import os
 from database import get_db
 from models import User, Request, Feedback
 from log_parser import parse_log
@@ -203,4 +204,4 @@ def submit_feedback(
 
 @app.get("/")
 def landing():
-    return FileResponse("index.html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
