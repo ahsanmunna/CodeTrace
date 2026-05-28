@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import secrets
 import json
 
+from fastapi.responses import FileResponse
 from database import get_db
 from models import User, Request, Feedback
 from log_parser import parse_log
@@ -199,3 +200,7 @@ def submit_feedback(
         "message": "Feedback submitted successfully",
         "feedback_id": feedback.id
     }
+
+@app.get("/")
+def landing():
+    return FileResponse("index.html")
