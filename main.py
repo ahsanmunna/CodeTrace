@@ -204,4 +204,4 @@ def submit_feedback(
 
 @app.get("/")
 def landing():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
+    return FileResponse("/app/index.html")
