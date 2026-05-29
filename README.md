@@ -4,9 +4,9 @@ CodeTrace is a backend API service that accepts raw error logs and stack traces 
 
 ## Live API
 
-Base URL: `https://codetrace-production-6a5d.up.railway.app`
+Base URL: `codetrace-production-1a79.up.railway.app`
 
-API Docs: `https://codetrace-production-6a5d.up.railway.app/docs`
+API Docs: `codetrace-production-1a79.up.railway.app/docs`
 
 ## How it works
 
