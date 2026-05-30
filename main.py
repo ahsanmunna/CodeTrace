@@ -109,6 +109,14 @@ def analyze_log(
             detail="Rate limit exceeded. Free tier allows 10 requests per minute."
         )
 
+    # Log size check
+    MAX_LOG_SIZE = 10000
+    if len(request.log) > MAX_LOG_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Log too large. Maximum size is 10,000 characters."
+        )
+
     # Parse log
     parsed = parse_log(request.log)
 
@@ -156,7 +164,6 @@ def analyze_log(
         "data": response_data,
         "request_id": new_request.id
     }
-
 
 # -------------------
 # Feedback Endpoint
