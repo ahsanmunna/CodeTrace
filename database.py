@@ -14,7 +14,7 @@ if not DATABASE_URL:
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True
+    echo=os.getenv("DEBUG", "false").lower() == "true"
 )
 
 SessionLocal = sessionmaker(
