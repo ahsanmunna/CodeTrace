@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, func
 from sqlalchemy.orm import relationship
 import datetime
 
@@ -15,7 +15,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     api_key = Column(String, unique=True, nullable=False)
     tier = Column(String, nullable=False, default="free")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now())
 
     requests = relationship("Request", back_populates="user")
     feedback = relationship("Feedback", back_populates="user")
@@ -35,7 +35,7 @@ class Request(Base):
     response_data = Column(Text, nullable=True)
 
     status = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="requests")
     feedback = relationship("Feedback", back_populates="request")
@@ -57,7 +57,7 @@ class ErrorPattern(Base):
     frequency = Column(Integer, default=0)
     doc_url = Column(String, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now())
 
 
 # -------------------
@@ -73,7 +73,7 @@ class Feedback(Base):
     is_correct = Column(Boolean, nullable=False)
     comment = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="feedback")
     request = relationship("Request", back_populates="feedback")
